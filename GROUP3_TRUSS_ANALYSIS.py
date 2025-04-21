@@ -27,3 +27,14 @@ def read_single_sheet(filepath):
         )
 
     return sections
+
+def main():
+    data = read_single_sheet("truss_dataset.xlsx")
+
+    nodes = data['NODES']
+    elements = data['ELEMENTS']
+    loads = data['LOADS']
+    supports = data['SUPPORTS']
+
+    node_coords = nodes[['X', 'Y']].values
+    num_nodes = len(node_coords)
