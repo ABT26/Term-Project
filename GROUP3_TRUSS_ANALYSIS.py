@@ -1,5 +1,9 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+
+
+
 
 def read_single_sheet(filepath):
     df = pd.read_excel(filepath, header=None)
@@ -27,6 +31,112 @@ def read_single_sheet(filepath):
         )
 
     return sections
+
+
+
+
+
+
+def plot_truss_structure(node_coords, element_nodes, loads_vector, title="Truss Structure"):
+    plt.figure(figsize=(12, 8))
+    
+    # Convert coordinates for better scaling
+    node_coords_km = node_coords / 1000 
+    
+    # Calculate plot boundaries
+    x_coords = node_coords_km[:, 0]
+    y_coords = node_coords_km[:, 1]
+    x_center, y_center = np.mean(x_coords), np.mean(y_coords)
+    x_range = max(x_coords) - min(x_coords) or 1
+    y_range = max(y_coords) - min(y_coords) or 1
+    
+    #axis limits 
+    plt.xlim([x_center - x_range*0.7, x_center + x_range*0.7])
+    plt.ylim([y_center - y_range*0.7, y_center + y_range*0.7])
+
+    #Plot elements
+    for start, end in element_nodes:
+        x = [node_coords_km[start][0], node_coords_km[end][0]]
+        y = [node_coords_km[start][1], node_coords_km[end][1]]
+        plt.plot(x, y, 'b-o', linewidth=1.5, markersize=4, markerfacecolor='blue')
+
+    #force magnitude arrow scaling
+    force_magnitudes = np.sqrt(loads_vector[::2]**2 + loads_vector[1::2]**2)
+    max_force = np.max(force_magnitudes) or 1 
+    
+    # Auto-scale 
+    arrow_scale = 0.1 * x_range / max_force 
+    label_offset = x_range * 0.02  
+
+    # Plot loads with proportional arrows
+    for i in range(len(node_coords_km)):
+        fx = loads_vector[2*i]
+        fy = loads_vector[2*i+1]
+        if fx != 0 or fy != 0:
+            x, y = node_coords_km[i]
+            dx = fx * arrow_scale
+            dy = fy * arrow_scale
+            
+            plt.arrow(x, y, dx, dy, 
+                      color='red', 
+                      head_width=x_range*0.015, 
+                      head_length=x_range*0.03,
+                      length_includes_head=True,
+                      width=x_range*0.003)
+            
+            # Calculate label position
+            angle = np.arctan2(dy, dx)
+            label_x = x + dx + label_offset * np.cos(angle)
+            label_y = y + dy + label_offset * np.sin(angle)
+            
+            plt.text(label_x, label_y, 
+                    f"{np.hypot(fx, fy)/1000:.1f} kN", 
+                    color='darkred', fontsize=9, ha='center')
+
+    plt.title(title)
+    plt.xlabel("X (km)")
+    plt.ylabel("Y (km)")
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.gca().set_aspect('equal', adjustable='datalim')
+    plt.tight_layout()
+    plt.show()
+
+
+
+def plot_member_forces(node_coords, element_nodes, member_forces, title="Member Forces Analysis"):
+    """Plot 2: Shows member forces with tension/compression visualization"""
+    plt.figure(figsize=(12, 8))
+    
+    # Plot elements with force magnitude and type
+    for i, (start, end) in enumerate(element_nodes):
+        x = [node_coords[start][0], node_coords[end][0]]
+        y = [node_coords[start][1], node_coords[end][1]]
+        
+        # Force-based styling
+        force = member_forces[i]
+        linewidth = 1 + abs(force) / 5000  # Scale line width with force
+        color = 'blue' if force > 0 else 'red'  # Blue=Tension, Red=Compression
+        
+        plt.plot(x, y, color=color, linewidth=linewidth)
+        
+        # Add force label at midpoint
+        mid_x = sum(x)/2
+        mid_y = sum(y)/2
+        plt.text(mid_x, mid_y, 
+                f"{abs(force/1000):.1f} kN\n({'T' if force>0 else 'C'})", 
+                ha='center', va='center', fontsize=8,
+                bbox=dict(facecolor='white', edgecolor='none', alpha=0.8))
+
+    plt.title(title)
+    plt.xlabel("X (m)")
+    plt.ylabel("Y (m)")
+    plt.axis('equal')
+    plt.grid(True)
+    plt.show()
+
+
+
+
 
 def main():
     data = read_single_sheet("truss_analysis.xlsx")
@@ -140,7 +250,12 @@ def main():
     with pd.ExcelWriter('truss_analysis.xlsx', engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
      disp_df.to_excel(writer, sheet_name='Displacements', index=False)
      force_df.to_excel(writer, sheet_name='Member Forces', index=False)
-     
+    
+    
+    # In your main function after analysis:
+    plot_truss_structure(node_coords, element_nodes, loads_vector)
+    plot_member_forces(node_coords, element_nodes, member_forces)
+    
     try:
         allowable_stress = float(input("\nEnter the allowable stress (Pa): "))    #0.6Fy
         
