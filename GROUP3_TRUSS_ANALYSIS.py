@@ -103,27 +103,52 @@ def plot_truss_structure(node_coords, element_nodes, loads_vector, title="Truss 
 
 
 
+
+    
+
+
 def plot_member_forces(node_coords, element_nodes, member_forces, title="Member Forces Analysis"):
     """Plot 2: Shows member forces with tension/compression visualization"""
     plt.figure(figsize=(12, 8))
+    
+    # Set thickness parameters
+    min_thickness = 0.5  # Thinnest line for smallest force
+    max_thickness = 10   # Thickest line for largest force
+    
+    # Filter out zero forces if present to avoid division issues
+    non_zero_forces = [f for f in member_forces if abs(f) > 1e-6]
+    
+    if not non_zero_forces:  # If all forces are zero
+        non_zero_forces = [0]  # Fallback to prevent errors
+    
+    min_force = min(abs(f) for f in non_zero_forces)
+    max_force = max(abs(f) for f in non_zero_forces)
     
     # Plot elements with force magnitude and type
     for i, (start, end) in enumerate(element_nodes):
         x = [node_coords[start][0], node_coords[end][0]]
         y = [node_coords[start][1], node_coords[end][1]]
         
-        # Force-based styling
         force = member_forces[i]
-        linewidth = 1 + abs(force) / 5000  # Scale line width with force
+        abs_force = abs(force)
+        
+        # Normalize force magnitude between min and max thickness
+        if max_force == min_force:  # All forces are equal
+            thickness = (max_thickness + min_thickness)/2
+        else:
+            # Scale thickness proportionally between min and max
+            normalized = (abs_force - min_force) / (max_force - min_force)
+            thickness = min_thickness + normalized * (max_thickness - min_thickness)
+        
         color = 'blue' if force > 0 else 'red'  # Blue=Tension, Red=Compression
         
-        plt.plot(x, y, color=color, linewidth=linewidth)
+        plt.plot(x, y, color=color, linewidth=thickness)
         
         # Add force label at midpoint
         mid_x = sum(x)/2
         mid_y = sum(y)/2
         plt.text(mid_x, mid_y, 
-                f"{abs(force/1000):.1f} kN\n({'T' if force>0 else 'C'})", 
+                f"{abs_force/1000:.1f} kN\n({'T' if force>0 else 'C'})", 
                 ha='center', va='center', fontsize=8,
                 bbox=dict(facecolor='white', edgecolor='none', alpha=0.8))
 
@@ -133,8 +158,6 @@ def plot_member_forces(node_coords, element_nodes, member_forces, title="Member 
     plt.axis('equal')
     plt.grid(True)
     plt.show()
-
-
 
 
 
