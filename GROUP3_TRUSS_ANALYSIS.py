@@ -159,7 +159,75 @@ def plot_member_forces(node_coords, element_nodes, member_forces, title="Member 
     plt.ylabel("Y (m)")
     plt.axis('equal')
     plt.grid(True)
+    plt.show(block=False)
+    plt.pause(1)
+
+
+
+def plot_displaced_structure(node_coords, element_nodes, displacements, title="Displaced Structure"):
+    plt.figure(figsize=(12, 8))
+    
+    # Convert original coordinates to kilometers
+    node_coords_km = node_coords / 1000
+    
+    # Calculate automatic scaling factor for displacements
+    disp_magnitudes = np.sqrt(displacements[::2]**2 + displacements[1::2]**2)
+    max_disp = np.max(disp_magnitudes) if len(disp_magnitudes) > 0 else 0
+    
+    if max_disp > 0:
+        # Calculate structure dimensions in meters
+        x_coords = node_coords[:, 0]
+        y_coords = node_coords[:, 1]
+        x_range = np.ptp(x_coords)  # Peak-to-peak (max - min)
+        y_range = np.ptp(y_coords)
+        structure_size = max(x_range, y_range)
+        
+        # Scale factor to make max displacement 10% of structure size
+        scale_factor = (0.05 * structure_size) / max_disp
+    else:
+        scale_factor = 1  # No displacement
+    
+    # Calculate displaced coordinates (in meters) and convert to km
+    displaced_coords = node_coords + displacements.reshape(-1, 2) * scale_factor
+    displaced_coords_m = displaced_coords / 1000
+    
+    # Combine coordinates for axis limits
+    all_x = np.concatenate([node_coords_km[:, 0], displaced_coords_m[:, 0]])
+    all_y = np.concatenate([node_coords_km[:, 1], displaced_coords_m[:, 1]])
+    
+    # Set plot boundaries
+    x_center, y_center = np.mean(all_x), np.mean(all_y)
+    x_range_plot = np.ptp(all_x) or 1
+    y_range_plot = np.ptp(all_y) or 1
+    
+    plt.xlim([x_center - x_range_plot*0.7, x_center + x_range_plot*0.7])
+    plt.ylim([y_center - y_range_plot*0.7, y_center + y_range_plot*0.7])
+    
+    # Plot original structure (dashed lines)
+    for start, end in element_nodes:
+        x = [node_coords_km[start][0], node_coords_km[end][0]]
+        y = [node_coords_km[start][1], node_coords_km[end][1]]
+        plt.plot(x, y, 'b--', linewidth=1, alpha=0.5)
+    
+    # Plot displaced structure (solid red lines)
+    for start, end in element_nodes:
+        x = [displaced_coords_m[start][0], displaced_coords_m[end][0]]
+        y = [displaced_coords_m[start][1], displaced_coords_m[end][1]]
+        plt.plot(x, y, 'r-', linewidth=1.5)
+    
+    # Create legend proxies
+    plt.plot([], [], 'b--', label='Original Structure')
+    plt.plot([], [], 'r-', label=f'Deformed Structure')
+    plt.title(f"{title}\nDisplacements exaggerated for visualization")
+    plt.xlabel("X (m)")
+    plt.ylabel("Y (m)")
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.5)
+    plt.gca().set_aspect('equal', adjustable='datalim')
+    plt.tight_layout()
     plt.show()
+    
+
 
 
 
@@ -308,7 +376,7 @@ def main():
         # # In your main function after analysis:
         plot_truss_structure(node_coords, element_nodes, loads_vector)
         plot_member_forces(node_coords, element_nodes, member_forces) 
-            
+        plot_displaced_structure(node_coords, element_nodes, displacements)   
     except ValueError:
         print("Invalid input. Please enter a numeric value for allowable stress.")
 if __name__ == "__main__":
