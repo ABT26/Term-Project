@@ -99,7 +99,8 @@ def plot_truss_structure(node_coords, element_nodes, loads_vector, title="Truss 
     plt.grid(True, linestyle='--', alpha=0.5)
     plt.gca().set_aspect('equal', adjustable='datalim')
     plt.tight_layout()
-    plt.show()
+    plt.show(block=False)
+    plt.pause(2)
 
 
 
@@ -147,10 +148,11 @@ def plot_member_forces(node_coords, element_nodes, member_forces, title="Member 
         # Add force label at midpoint
         mid_x = sum(x)/2
         mid_y = sum(y)/2
+        
         plt.text(mid_x, mid_y, 
-                f"{abs_force/1000:.1f} kN\n({'T' if force>0 else 'C'})", 
-                ha='center', va='center', fontsize=8,
-                bbox=dict(facecolor='white', edgecolor='none', alpha=0.8))
+            f"M{i+1}\n{abs_force/1000:.1f} kN\n({'T' if force>0 else 'C'})", 
+            ha='center', va='center', fontsize=8,
+            bbox=dict(facecolor='white', edgecolor='none', alpha=0.8))
 
     plt.title(title)
     plt.xlabel("X (m)")
@@ -275,19 +277,39 @@ def main():
      force_df.to_excel(writer, sheet_name='Member Forces', index=False)
     
     
-    # In your main function after analysis:
-    plot_truss_structure(node_coords, element_nodes, loads_vector)
-    plot_member_forces(node_coords, element_nodes, member_forces)
+   
+    
     
     try:
-        allowable_stress = float(input("\nEnter the allowable stress (Pa): "))    #0.6Fy
+        # Get allowable stress from user
+        allowable_stress = float(input("\nEnter the allowable stress (Pa): "))
         
-        if (force_df['Stress (Pa)'].abs() > allowable_stress).any():
-            print("Optimization Required")
+        # Add 'Optimization Needed' column to force_df
+        force_df['Optimization Needed'] = np.where(
+            force_df['Stress (Pa)'].abs() > allowable_stress, 
+            'Required', 
+            'Not Required'
+        )
+        
+        # Write updated results to Excel (replaces existing sheets)
+        with pd.ExcelWriter('truss_analysis.xlsx', engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            disp_df.to_excel(writer, sheet_name='Displacements', index=False)
+            force_df.to_excel(writer, sheet_name='Member Forces', index=False)
+        
+       
+        
+        # Print members requiring optimization
+        if (force_df['Optimization Needed'] == 'Required').any():
+            required_elements = force_df[force_df['Optimization Needed'] == 'Required']['Element'].tolist()
+            print(f"Optimization Required for Members: {', '.join(map(str, required_elements))}")
         else:
-            print("No Optimization Needed")
+            print("No Optimization Needed.")
+            
+        # # In your main function after analysis:
+        plot_truss_structure(node_coords, element_nodes, loads_vector)
+        plot_member_forces(node_coords, element_nodes, member_forces) 
+            
     except ValueError:
-        print("Invalid input for allowable stress. Please enter a numeric value.")
-
+        print("Invalid input. Please enter a numeric value for allowable stress.")
 if __name__ == "__main__":
     main()
