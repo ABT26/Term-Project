@@ -12,4 +12,4 @@ Truss structure with applied loads.
 Member forces (tension/compression) with colored thickness representation.
 Deformed structure
 
-
+xyz
