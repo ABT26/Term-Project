@@ -1,3 +1,6 @@
+GitHub Repository - https://github.com/ABT26/Term-Project.git
+
+
 This Python script performs 2D truss analysis using the stiffness matrix method, visualizes the structure and internal forces, and writes the displacements and member forces/stresses to an Excel file.
 
 Features-

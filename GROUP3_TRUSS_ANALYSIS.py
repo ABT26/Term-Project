@@ -40,12 +40,12 @@ def read_single_sheet(filepath):
 def plot_truss_structure(node_coords, element_nodes, loads_vector, title="Truss Structure"):
     plt.figure(figsize=(12, 8))
     
-    # Convert coordinates for better scaling
-    node_coords_km = node_coords / 1000 
+    # scaling
+    node_coords_m = node_coords / 1000 
     
     # Calculate plot boundaries
-    x_coords = node_coords_km[:, 0]
-    y_coords = node_coords_km[:, 1]
+    x_coords = node_coords_m[:, 0]
+    y_coords = node_coords_m[:, 1]
     x_center, y_center = np.mean(x_coords), np.mean(y_coords)
     x_range = max(x_coords) - min(x_coords) or 1
     y_range = max(y_coords) - min(y_coords) or 1
@@ -56,8 +56,8 @@ def plot_truss_structure(node_coords, element_nodes, loads_vector, title="Truss 
 
     #Plot elements
     for start, end in element_nodes:
-        x = [node_coords_km[start][0], node_coords_km[end][0]]
-        y = [node_coords_km[start][1], node_coords_km[end][1]]
+        x = [node_coords_m[start][0], node_coords_m[end][0]]
+        y = [node_coords_m[start][1], node_coords_m[end][1]]
         plt.plot(x, y, 'b-o', linewidth=1.5, markersize=4, markerfacecolor='blue')
 
     #force magnitude arrow scaling
@@ -69,11 +69,11 @@ def plot_truss_structure(node_coords, element_nodes, loads_vector, title="Truss 
     label_offset = x_range * 0.02  
 
     # Plot loads with proportional arrows
-    for i in range(len(node_coords_km)):
+    for i in range(len(node_coords_m)):
         fx = loads_vector[2*i]
         fy = loads_vector[2*i+1]
         if fx != 0 or fy != 0:
-            x, y = node_coords_km[i]
+            x, y = node_coords_m[i]
             dx = fx * arrow_scale
             dy = fy * arrow_scale
             
@@ -113,14 +113,14 @@ def plot_member_forces(node_coords, element_nodes, member_forces, title="Member 
     plt.figure(figsize=(12, 8))
     
     # Set thickness parameters
-    min_thickness = 0.5  # Thinnest line for smallest force
-    max_thickness = 10   # Thickest line for largest force
+    min_thickness = 0.5  
+    max_thickness = 10   
     
     # Filter out zero forces if present to avoid division issues
     non_zero_forces = [f for f in member_forces if abs(f) > 1e-6]
     
-    if not non_zero_forces:  # If all forces are zero
-        non_zero_forces = [0]  # Fallback to prevent errors
+    if not non_zero_forces: 
+        non_zero_forces = [0]  
     
     min_force = min(abs(f) for f in non_zero_forces)
     max_force = max(abs(f) for f in non_zero_forces)
@@ -134,14 +134,14 @@ def plot_member_forces(node_coords, element_nodes, member_forces, title="Member 
         abs_force = abs(force)
         
         # Normalize force magnitude between min and max thickness
-        if max_force == min_force:  # All forces are equal
+        if max_force == min_force:  
             thickness = (max_thickness + min_thickness)/2
         else:
             # Scale thickness proportionally between min and max
             normalized = (abs_force - min_force) / (max_force - min_force)
             thickness = min_thickness + normalized * (max_thickness - min_thickness)
         
-        color = 'blue' if force > 0 else 'red'  # Blue=Tension, Red=Compression
+        color = 'blue' if force > 0 else 'red'  
         
         plt.plot(x, y, color=color, linewidth=thickness)
         
@@ -168,7 +168,7 @@ def plot_displaced_structure(node_coords, element_nodes, displacements, title="D
     plt.figure(figsize=(12, 8))
     
     # Convert original coordinates to kilometers
-    node_coords_km = node_coords / 1000
+    node_coords_m = node_coords / 1000
     
     # Calculate automatic scaling factor for displacements
     disp_magnitudes = np.sqrt(displacements[::2]**2 + displacements[1::2]**2)
@@ -178,22 +178,22 @@ def plot_displaced_structure(node_coords, element_nodes, displacements, title="D
         # Calculate structure dimensions in meters
         x_coords = node_coords[:, 0]
         y_coords = node_coords[:, 1]
-        x_range = np.ptp(x_coords)  # Peak-to-peak (max - min)
+        x_range = np.ptp(x_coords) 
         y_range = np.ptp(y_coords)
         structure_size = max(x_range, y_range)
         
         # Scale factor to make max displacement 10% of structure size
         scale_factor = (0.05 * structure_size) / max_disp
     else:
-        scale_factor = 1  # No displacement
+        scale_factor = 1  
     
     # Calculate displaced coordinates (in meters) and convert to km
     displaced_coords = node_coords + displacements.reshape(-1, 2) * scale_factor
     displaced_coords_m = displaced_coords / 1000
     
     # Combine coordinates for axis limits
-    all_x = np.concatenate([node_coords_km[:, 0], displaced_coords_m[:, 0]])
-    all_y = np.concatenate([node_coords_km[:, 1], displaced_coords_m[:, 1]])
+    all_x = np.concatenate([node_coords_m[:, 0], displaced_coords_m[:, 0]])
+    all_y = np.concatenate([node_coords_m[:, 1], displaced_coords_m[:, 1]])
     
     # Set plot boundaries
     x_center, y_center = np.mean(all_x), np.mean(all_y)
@@ -205,8 +205,8 @@ def plot_displaced_structure(node_coords, element_nodes, displacements, title="D
     
     # Plot original structure (dashed lines)
     for start, end in element_nodes:
-        x = [node_coords_km[start][0], node_coords_km[end][0]]
-        y = [node_coords_km[start][1], node_coords_km[end][1]]
+        x = [node_coords_m[start][0], node_coords_m[end][0]]
+        y = [node_coords_m[start][1], node_coords_m[end][1]]
         plt.plot(x, y, 'b--', linewidth=1, alpha=0.5)
     
     # Plot displaced structure (solid red lines)
@@ -217,7 +217,7 @@ def plot_displaced_structure(node_coords, element_nodes, displacements, title="D
     
     # Create legend proxies
     plt.plot([], [], 'b--', label='Original Structure')
-    plt.plot([], [], 'r-', label=f'Deformed Structure')
+    plt.plot([], [], 'r-', label=f'Displaced Structure')
     plt.title(f"{title}\nDisplacements exaggerated for visualization")
     plt.xlabel("X (m)")
     plt.ylabel("Y (m)")
@@ -349,31 +349,31 @@ def main():
     
     
     try:
-        # Get allowable stress from user
+        # Get allowable stress
         allowable_stress = float(input("\nEnter the allowable stress (Pa): "))
         
-        # Add 'Optimization Needed' column to force_df
+        # Add 'Optimization check' 
         force_df['Optimization Needed'] = np.where(
             force_df['Stress (Pa)'].abs() > allowable_stress, 
             'Required', 
             'Not Required'
         )
         
-        # Write updated results to Excel (replaces existing sheets)
+        #updated results to Excel (replaces existing sheets)
         with pd.ExcelWriter('truss_analysis.xlsx', engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
             disp_df.to_excel(writer, sheet_name='Displacements', index=False)
             force_df.to_excel(writer, sheet_name='Member Forces', index=False)
         
        
         
-        # Print members requiring optimization
+        
         if (force_df['Optimization Needed'] == 'Required').any():
             required_elements = force_df[force_df['Optimization Needed'] == 'Required']['Element'].tolist()
             print(f"Optimization Required for Members: {', '.join(map(str, required_elements))}")
         else:
             print("No Optimization Needed.")
             
-        # # In your main function after analysis:
+        
         plot_truss_structure(node_coords, element_nodes, loads_vector)
         plot_member_forces(node_coords, element_nodes, member_forces) 
         plot_displaced_structure(node_coords, element_nodes, displacements)   
