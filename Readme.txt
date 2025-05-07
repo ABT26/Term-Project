@@ -13,6 +13,6 @@ Checks whether the member stresses exceed a user-specified allowable stress.
 Visualizes-
 Truss structure with applied loads.
 Member forces (tension/compression) with colored thickness representation.
+Deformed structure
 
-
-
+xyz
